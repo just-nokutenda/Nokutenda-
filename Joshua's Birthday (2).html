@@ -1,0 +1,382 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Joshua's Birthday</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centered column, candle first, then reasons, then a short letter. Candlelit night, single deliberate dark look. */
+:root {
+  --bg: #0e1124;
+  --bg-soft: #161a33;
+  --paper: #f4e9da;
+  --muted: #a3a8cc;
+  --flame: #ffb347;
+  --rose: #ff7d94;
+  --line: #2a2f55;
+  --display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--paper);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.6;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background-image: radial-gradient(ellipse 70% 40% at 50% 0%, #1d2250 0%, transparent 70%);
+  background-repeat: no-repeat;
+}
+main { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 72px; }
+h1, h2 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+
+/* hero */
+.hero { display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
+.eyebrow { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(52px, 14vw, 96px); line-height: 0.98; }
+h1 em { color: var(--flame); font-style: italic; }
+.sub { color: var(--muted); max-width: 30ch; }
+
+.cake { position: relative; width: 150px; height: 190px; margin-top: 12px; }
+.glow {
+  position: absolute; left: 50%; top: 6px; width: 230px; height: 230px; translate: -50% 0;
+  background: radial-gradient(circle, rgba(255,179,71,0.34), transparent 65%);
+  transition: opacity 0.6s; pointer-events: none;
+}
+.candle {
+  position: absolute; left: 50%; top: 52px; width: 14px; height: 62px; translate: -50% 0;
+  background: repeating-linear-gradient(135deg, #f4e9da 0 8px, var(--rose) 8px 14px);
+  border-radius: 3px;
+}
+.candle::before { /* wick */
+  content: ""; position: absolute; left: 50%; top: -7px; width: 2px; height: 8px; translate: -50% 0; background: #3a2f2a;
+}
+.flame {
+  position: absolute; left: 50%; top: 14px; width: 18px; height: 34px; translate: -50% 0;
+  background: radial-gradient(ellipse at 50% 75%, #fff4cf 0 18%, var(--flame) 45%, #ff7a2f 80%);
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  transform-origin: 50% 100%;
+  animation: flicker 1.3s ease-in-out infinite alternate;
+  transition: opacity 0.35s, scale 0.35s;
+}
+.smoke {
+  position: absolute; left: 50%; top: 20px; width: 6px; height: 30px; translate: -50% 0; opacity: 0;
+  background: linear-gradient(to top, rgba(163,168,204,0.5), transparent); border-radius: 6px; filter: blur(2px);
+}
+.cake.out .flame { opacity: 0; scale: 0.2; animation: none; }
+.cake.out .glow { opacity: 0.08; }
+.cake.out .smoke { animation: smoke 2.2s ease-out 1; }
+.tier {
+  position: absolute; left: 50%; translate: -50% 0; border-radius: 10px 10px 6px 6px;
+}
+.tier.top { top: 114px; width: 104px; height: 34px; background: var(--paper); }
+.tier.top::after { content: ""; position: absolute; inset: 0 0 auto; height: 11px; background: var(--rose); border-radius: 10px 10px 50% 50% / 10px 10px 100% 100%; }
+.tier.base { top: 148px; width: 150px; height: 40px; background: #e7d6c1; }
+.tier.base::after { content: ""; position: absolute; inset: 0 0 auto; height: 12px; background: var(--flame); border-radius: 10px 10px 50% 50% / 10px 10px 100% 100%; opacity: 0.9; }
+
+button {
+  font: inherit; font-weight: 600; color: #1b1405; background: var(--flame); border: 0; border-radius: 999px;
+  padding: 13px 26px; cursor: pointer; transition: transform 0.15s, background 0.2s;
+}
+button:hover { background: #ffc470; }
+button:active { transform: scale(0.97); }
+button:focus-visible, .reason:focus-visible { outline: 3px solid var(--paper); outline-offset: 3px; }
+.wish { min-height: 3.2em; color: var(--rose); font-family: var(--display); font-style: italic; font-size: 24px; line-height: 1.25; text-wrap: balance; max-width: 26ch; }
+
+/* reasons */
+.section-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+h2 { font-size: clamp(32px, 8vw, 44px); line-height: 1.05; }
+.section-head p { color: var(--muted); }
+.reasons { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.reason {
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px;
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  transition: border-color 0.25s, translate 0.25s;
+}
+.reason:hover, .reason.lit { border-color: var(--flame); translate: 0 -3px; }
+.reason b { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.1; color: var(--flame); }
+.reason span { color: var(--muted); font-size: 15px; }
+.reason:last-child { grid-column: 1 / -1; }
+
+/* balloons */
+.sky { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 16px; padding: 10px 0 30px; }
+.balloon {
+  position: relative; width: 62px; height: 78px; padding: 0; border: 0; cursor: pointer;
+  border-radius: 50% 50% 48% 48% / 55% 55% 45% 45%;
+  background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.55), transparent 28%), var(--c);
+  animation: bob 3s ease-in-out infinite; animation-delay: var(--d);
+}
+.balloon:hover { background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.7), transparent 30%), var(--c); }
+.balloon::before { content: ""; position: absolute; left: 50%; bottom: -6px; translate: -50% 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid var(--c); }
+.balloon::after { content: ""; position: absolute; left: 50%; top: calc(100% + 2px); width: 1px; height: 26px; background: var(--muted); opacity: 0.6; }
+.balloon.pop { animation: pop 0.22s ease-out forwards; }
+.balloon.popped { visibility: hidden; animation: none; }
+.pop-msg {
+  background: var(--bg-soft); border: 1px dashed var(--line); border-radius: 14px; padding: 22px 18px; text-align: center;
+  font-family: var(--display); font-size: 26px; line-height: 1.2; min-height: 6.2em;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; text-wrap: balance;
+  transition: border-color 0.3s, color 0.3s;
+}
+.pop-msg small { font-family: var(--body); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.pop-msg.done { border: 1px solid var(--flame); color: var(--flame); }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; text-align: center; }
+.stat { display: flex; flex-direction: column; gap: 4px; padding: 18px 8px; border-top: 1px solid var(--line); cursor: pointer; transition: translate 0.2s; }
+.stat:hover { translate: 0 -4px; }
+.stat b { font-family: var(--display); font-weight: 400; font-size: clamp(44px, 12vw, 64px); line-height: 1; color: var(--flame); }
+.stat span { color: var(--muted); font-size: 14px; }
+
+/* letter */
+.letter { background: var(--paper); color: #231c2e; border-radius: 6px; padding: clamp(26px, 6vw, 46px); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 60px rgba(0,0,0,0.45); }
+.letter .greet { font-family: var(--display); font-size: 34px; line-height: 1; }
+.letter p { font-size: 18px; }
+.sign { font-family: var(--display); font-style: italic; font-size: 26px; margin-top: 8px; }
+
+footer { text-align: center; color: var(--muted); font-size: 14px; }
+
+canvas#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
+
+@keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -9px; } }
+@keyframes pop { 0% { scale: 1; } 40% { scale: 1.25; } 100% { scale: 0; opacity: 0; } }
+@keyframes flicker { 0% { transform: rotate(-2deg) scaleY(1); } 50% { transform: rotate(1.5deg) scaleY(1.06); } 100% { transform: rotate(-1deg) scaleY(0.97); } }
+@keyframes smoke { 0% { opacity: 0.8; transform: translateY(0) scaleX(1); } 100% { opacity: 0; transform: translateY(-46px) scaleX(2.4); } }
+@media (max-width: 440px) { .reasons { grid-template-columns: minmax(0, 1fr); } .reason:last-child { grid-column: auto; } }
+@media (prefers-reduced-motion: reduce) { .flame, .balloon { animation: none; } .reason { transition: none; } }
+</style>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<main>
+  <section class="hero">
+    <p class="eyebrow">22 October</p>
+    <h1>Happy birthday, <em>Joshua.</em></h1>
+    <p class="sub">I made this for you. Start with the candle, then tap around. Everything does something.</p>
+
+    <div class="cake" id="cake" aria-hidden="true">
+      <div class="glow"></div>
+      <div class="smoke"></div>
+      <div class="flame"></div>
+      <div class="candle"></div>
+      <div class="tier top"></div>
+      <div class="tier base"></div>
+    </div>
+
+    <button id="wishBtn" type="button">Make a wish and blow it out</button>
+    <p class="wish" id="wishText" aria-live="polite">Make it a big one. I'm rooting for it.</p>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Things I don't say enough</h2>
+      <p>Tap any of them.</p>
+    </div>
+    <ul class="reasons" id="reasons">
+      <li class="reason" tabindex="0" data-msg="Thank you for always showing up.">
+        <b>You show up</b>
+        <span>When it counts, you're there. That means more than you know.</span>
+      </li>
+      <li class="reason" tabindex="0" data-msg="Ordinary days are better with you in them.">
+        <b>You make days better</b>
+        <span>Even the boring ones turn into something good when you're around.</span>
+      </li>
+      <li class="reason" tabindex="0" data-msg="I never have to pretend with you.">
+        <b>I can be myself</b>
+        <span>No acting, no explaining. That's rare, and I don't take it for granted.</span>
+      </li>
+      <li class="reason" tabindex="0" data-msg="I'm lucky to have you as a friend.">
+        <b>You're one of the good ones</b>
+        <span>Kind, real and steady. Not everyone gets a friend like that.</span>
+      </li>
+      <li class="reason" tabindex="0" data-msg="You matter to me, Joshua. A lot.">
+        <b>You matter to me</b>
+        <span>More than I usually say out loud, so I'm saying it here.</span>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Pop them all</h2>
+      <p>Seven balloons, one for every year since 2019.</p>
+    </div>
+    <div class="sky" id="sky">
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#ffb347;--d:0s"></button>
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#ff7d94;--d:-0.6s"></button>
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#7fd1ff;--d:-1.2s"></button>
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#b9a2ff;--d:-1.8s"></button>
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#7be3a6;--d:-2.4s"></button>
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#f4e9da;--d:-0.3s"></button>
+      <button class="balloon" type="button" aria-label="Pop balloon" style="--c:#ff9a5c;--d:-1.5s"></button>
+    </div>
+    <div class="pop-msg" id="popMsg" aria-live="polite">
+      <span id="popText">Each balloon has something I want you to hear.</span>
+      <small id="popCount">0 of 7 popped</small>
+    </div>
+  </section>
+
+  <section class="stats" id="stats">
+    <div class="stat"><b>7</b><span>years of friendship</span></div>
+    <div class="stat"><b>1</b><span>birthday, today</span></div>
+    <div class="stat"><b>&infin;</b><span>reasons to celebrate</span></div>
+  </section>
+
+  <section class="letter">
+    <p class="greet">Joshua,</p>
+    <p>I woke up this morning without a gift for you, so I made you this instead. It can't be wrapped and it won't fit in a box, but it's the truest thing I could give you.</p>
+    <p>We've been friends since 2019, and in all that time you've been a real friend to me. Thank you for the laughs, for the time, and for being someone I can count on. I hope today is full of good people, good food and nothing to worry about.</p>
+    <p>Happy birthday. I'm really glad you were born.</p>
+    <p class="sign">Your friend</p>
+  </section>
+
+  <footer>Friends since 2019. Made today, just for you.</footer>
+</main>
+
+<script>
+(function () {
+  var cake = document.getElementById('cake');
+  var btn = document.getElementById('wishBtn');
+  var wishText = document.getElementById('wishText');
+  var reasons = document.getElementById('reasons');
+  var canvas = document.getElementById('confetti');
+  var ctx = canvas.getContext('2d');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var colors = ['#ffb347', '#ff7d94', '#f4e9da', '#7fd1ff', '#b9a2ff'];
+  var parts = [], running = false;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize() {
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function burst(x, y, n) {
+    if (reduce) return;
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, s = 4 + Math.random() * 9;
+      parts.push({
+        x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 5,
+        w: 5 + Math.random() * 6, h: 3 + Math.random() * 5,
+        r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+        c: colors[(Math.random() * colors.length) | 0], life: 0
+      });
+    }
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    parts = parts.filter(function (p) { return p.life < 150 && p.y < window.innerHeight + 30; });
+    parts.forEach(function (p) {
+      p.vy += 0.28; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p.life / 150);
+      ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    if (parts.length) requestAnimationFrame(tick);
+    else { running = false; ctx.clearRect(0, 0, window.innerWidth, window.innerHeight); }
+  }
+
+  var wishes = [
+    'Whatever you just wished for, I hope it comes true.',
+    'Done. The universe has been notified.',
+    'Good wish. I heard it, and I\'m on your side.'
+  ];
+  var wi = 0, out = false;
+
+  btn.addEventListener('click', function () {
+    var r = cake.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + 40;
+    if (!out) {
+      out = true;
+      cake.classList.add('out');
+      btn.textContent = 'Light it again';
+      wishText.textContent = wishes[wi++ % wishes.length];
+      burst(cx, cy, 90);
+      setTimeout(function () { burst(window.innerWidth * 0.2, window.innerHeight * 0.55, 40); burst(window.innerWidth * 0.8, window.innerHeight * 0.55, 40); }, 250);
+    } else {
+      out = false;
+      cake.classList.remove('out');
+      btn.textContent = 'Make a wish and blow it out';
+      wishText.textContent = 'Make it a big one. I\'m rooting for it.';
+    }
+  });
+
+  function lit(el) {
+    var all = reasons.querySelectorAll('.reason');
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('lit');
+    el.classList.add('lit');
+    var s = el.querySelector('span');
+    if (!el.dataset.orig) el.dataset.orig = s.textContent;
+    for (var j = 0; j < all.length; j++) {
+      var o = all[j].dataset.orig; if (o && all[j] !== el) all[j].querySelector('span').textContent = o;
+    }
+    s.textContent = el.dataset.msg;
+    var r = el.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, 22);
+  }
+  reasons.addEventListener('click', function (e) {
+    var el = e.target.closest('.reason'); if (el) lit(el);
+  });
+  reasons.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { var el = e.target.closest('.reason'); if (el) { e.preventDefault(); lit(el); } }
+  });
+  // balloons
+  var sky = document.getElementById('sky');
+  var popText = document.getElementById('popText');
+  var popCount = document.getElementById('popCount');
+  var popMsg = document.getElementById('popMsg');
+  var total = sky.querySelectorAll('.balloon').length;
+  var msgs = [
+    'You have been in my corner since 2019, and I noticed every single time.',
+    'Thank you for the times you listened without trying to fix everything.',
+    'Hard days feel lighter when you are around.',
+    'I am proud of who you have become.',
+    'You deserve a year as good as the friend you have been.',
+    'Whatever comes next for you, I will be cheering the loudest.'
+  ];
+  var popped = 0;
+  sky.addEventListener('click', function (e) {
+    var b = e.target.closest('.balloon');
+    if (!b || b.classList.contains('pop') || b.classList.contains('popped')) return;
+    b.classList.add('pop');
+    var r = b.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, 26);
+    setTimeout(function () { b.classList.add('popped'); }, 230);
+    popped++;
+    popCount.textContent = popped + ' of ' + total + ' popped';
+    if (popped < total) {
+      popText.textContent = msgs[popped - 1];
+    } else {
+      popText.textContent = 'I am really glad you are my friend, Joshua. Happy birthday.';
+      popMsg.classList.add('done');
+      burst(window.innerWidth * 0.25, window.innerHeight * 0.5, 70);
+      burst(window.innerWidth * 0.75, window.innerHeight * 0.5, 70);
+      setTimeout(function () { burst(window.innerWidth * 0.5, window.innerHeight * 0.4, 110); }, 300);
+    }
+  });
+
+  // stats pop confetti
+  document.getElementById('stats').addEventListener('click', function (e) {
+    var s = e.target.closest('.stat'); if (!s) return;
+    var r = s.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + 30, 36);
+  });
+
+  // tap anywhere else for a little confetti
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('button, .reason, .stat')) return;
+    burst(e.clientX, e.clientY, 16);
+  });
+})();
+</script>
+
+</body></html>
