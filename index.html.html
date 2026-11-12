@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seke District — Urban Expansion Monitor</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#eef1ef;
+    --panel:#ffffff;
+    --ink:#16232a;
+    --ink-70:rgba(22,35,42,0.66);
+    --ink-45:rgba(22,35,42,0.45);
+    --line:#dbe1de;
+    --navy:#122b3d;
+    --navy-soft:#1c3d52;
+    --accent:#2f7a63;
+
+    --st-reported:#d99a2b;
+    --st-investigation:#d9702e;
+    --st-verified:#c0392b;
+    --st-notice:#7a4fae;
+    --st-demolished:#6b7680;
+    --st-regularized:#2f8f5c;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    overflow:hidden;
+  }
+  .app{
+    display:grid;
+    grid-template-rows: auto 1fr;
+    height:100vh;
+    width:100vw;
+  }
+
+  /* ---------------- Top bar ---------------- */
+  .topbar{
+    background:var(--navy);
+    color:#eef4f2;
+    display:flex;
+    align-items:center;
+    gap:28px;
+    padding:0 22px;
+    height:64px;
+    border-bottom:3px solid var(--accent);
+    z-index:20;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:36px;height:36px;border-radius:6px;
+    background:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700; font-size:15px; color:#0d1f17;
+    flex-shrink:0;
+  }
+  .brand-text h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16.5px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:0.01em;
+  }
+  .brand-text p{
+    margin:1px 0 0;
+    font-size:11px;
+    color:rgba(238,244,242,0.6);
+    font-family:'IBM Plex Mono',monospace;
+    letter-spacing:0.03em;
+  }
+
+  .kpi-strip{
+    display:flex;
+    gap:0;
+    margin-left:auto;
+  }
+  .kpi{
+    padding:0 20px;
+    border-left:1px solid rgba(238,244,242,0.15);
+    text-align:right;
+  }
+  .kpi:last-child{ padding-right:0; }
+  .kpi-num{ font-family:'Space Grotesk',sans-serif; font-size:19px; font-weight:600; line-height:1.1; }
+  .kpi-label{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.06em; color:rgba(238,244,242,0.55); margin-top:2px; }
+  .kpi-num.alert{ color:#e8896f; }
+  .kpi-num.good{ color:#7fd3a8; }
+
+  .top-actions{ display:flex; gap:8px; margin-left:20px; }
+  .tbtn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    padding:8px 12px;
+    border-radius:4px;
+    border:1px solid rgba(238,244,242,0.25);
+    background:transparent;
+    color:#eef4f2;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .15s ease;
+  }
+  .tbtn:hover{ background:rgba(238,244,242,0.12); }
+  .tbtn.primary{ background:var(--accent); border-color:var(--accent); color:#0d1f17; font-weight:600; }
+  .tbtn.primary:hover{ background:#37916f; }
+  #fileInput{ display:none; }
+
+  /* ---------------- Body layout ---------------- */
+  .body{
+    display:grid;
+    grid-template-columns: 360px 1fr;
+    min-height:0;
+  }
+
+  .sidebar{
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+
+  .panel-tabs{
+    display:flex;
+    border-bottom:1px solid var(--line);
+  }
+  .panel-tab{
+    flex:1;
+    padding:11px 0;
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--ink-45);
+    background:none;
+    border:none;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .panel-tab.active{ color:var(--ink); border-bottom-color:var(--accent); font-weight:600; }
+
+  .search-row{ padding:12px 18px 8px; }
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:8px 10px;
+    background:var(--canvas);
+  }
+  .search-box svg{ opacity:.5; flex-shrink:0; }
+  .search-box input{ border:none;background:none;outline:none;font-size:13px;width:100%; font-family:'Inter',sans-serif; }
+
+  .filter-block{ padding:6px 18px 10px; border-bottom:1px solid var(--line); }
+  .filter-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--ink-45); margin:8px 0 6px;
+  }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    padding:5px 10px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    cursor:pointer;
+    color:var(--ink-70);
+    display:flex; align-items:center; gap:6px;
+    transition:all .12s ease;
+  }
+  .chip .dot{ width:7px;height:7px;border-radius:50%; }
+  .chip.active{ background:var(--ink); border-color:var(--ink); color:#fff; }
+  .chip:hover:not(.active){ border-color:var(--ink-45); }
+
+  .ward-bars{ padding:4px 18px 12px; border-bottom:1px solid var(--line); }
+  .ward-bar-row{ margin-bottom:8px; cursor:pointer; }
+  .ward-bar-top{ display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:3px; }
+  .ward-bar-name{ font-weight:500; }
+  .ward-bar-count{ font-family:'IBM Plex Mono',monospace; color:var(--ink-45); font-size:10.5px; }
+  .ward-bar-track{ display:flex; height:7px; border-radius:4px; overflow:hidden; background:var(--line); }
+  .ward-bar-seg{ height:100%; }
+  .ward-bar-row.filtered .ward-bar-track{ outline:2px solid var(--ink); outline-offset:1px; }
+
+  .count-row{
+    padding:8px 18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--ink-45);
+    border-bottom:1px solid var(--line);
+  }
+  .count-row b{ color:var(--ink); }
+
+  .list{ flex:1; overflow-y:auto; }
+  .list::-webkit-scrollbar{ width:8px; }
+  .list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+
+  .item{
+    padding:12px 18px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    transition:background .12s ease;
+  }
+  .item:hover{ background:var(--canvas); }
+  .item.active{ background:var(--navy); color:#eef4f2; }
+  .item.active .item-meta, .item.active .site-id{ color:rgba(238,244,242,0.6); }
+
+  .item-top{ display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+  .item-name{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; line-height:1.3; }
+  .site-id{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-45); flex-shrink:0; }
+  .item-meta{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-45); margin-top:5px; }
+  .status-pill{
+    display:inline-flex; align-items:center; gap:5px;
+    margin-top:7px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:9.5px; letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px;
+    color:#fff;
+  }
+  .status-pill .dot{ width:6px;height:6px;border-radius:50%; background:rgba(255,255,255,0.85); }
+
+  .empty-state{ padding:36px 22px; text-align:center; color:var(--ink-45); font-size:13px; line-height:1.6; }
+  .empty-state b{ display:block; font-family:'Space Grotesk',sans-serif; font-size:16px; color:var(--ink); margin-bottom:6px; }
+
+  /* ---------------- Map ---------------- */
+  .map-wrap{ position:relative; height:100%; }
+  #map{ height:100%; width:100%; background:var(--navy); }
+
+  .leaflet-popup-content-wrapper{ background:var(--panel); border-radius:4px; }
+  .leaflet-popup-content{ font-family:'Inter',sans-serif; font-size:12.5px; margin:11px 13px; }
+  .popup-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13.5px; margin-bottom:3px; }
+  .leaflet-popup-tip{ background:var(--panel); }
+
+  .map-legend{
+    position:absolute; bottom:18px; right:18px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px 12px;
+    z-index:900;
+    font-size:11px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.12);
+  }
+  .map-legend-title{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-45); margin-bottom:6px; }
+  .legend-row{ display:flex; align-items:center; gap:7px; margin-bottom:4px; }
+  .legend-row:last-child{ margin-bottom:0; }
+  .legend-row .dot{ width:9px;height:9px;border-radius:50%; flex-shrink:0; }
+
+  /* Detail drawer */
+  .drawer{
+    position:absolute; top:18px; right:18px;
+    width:330px;
+    max-height:calc(100% - 36px);
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    box-shadow:0 16px 40px rgba(0,0,0,0.22);
+    z-index:1000;
+    transform:translateX(calc(100% + 40px));
+    transition:transform .3s cubic-bezier(.2,.8,.2,1);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ padding:16px 18px 14px; border-bottom:1px solid var(--line); position:relative; }
+  .drawer-status{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.05em;
+    padding:4px 9px; border-radius:20px; color:#fff;
+  }
+  .drawer-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; margin:9px 0 2px; }
+  .drawer-sub{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-45); }
+  .drawer-close{
+    position:absolute; top:14px; right:14px; width:24px;height:24px;
+    border:1px solid var(--line); background:none; border-radius:50%; cursor:pointer;
+    display:flex;align-items:center;justify-content:center; font-size:13px;
+  }
+  .drawer-close:hover{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .drawer-body{ padding:12px 18px 18px; overflow-y:auto; }
+  .prop-row{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .prop-row:last-child{ border-bottom:none; }
+  .prop-key{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--ink-45); flex-shrink:0; }
+  .prop-val{ text-align:right; }
+
+  /* Log new site form modal */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(18,43,61,0.55);
+    display:none; align-items:center; justify-content:center; z-index:5000;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal{
+    background:var(--panel); border-radius:10px; width:420px; max-width:90vw;
+    max-height:85vh; overflow-y:auto; box-shadow:0 24px 60px rgba(0,0,0,0.3);
+  }
+  .modal-head{ padding:18px 20px 14px; border-bottom:1px solid var(--line); }
+  .modal-head h2{ font-family:'Space Grotesk',sans-serif; font-size:17px; margin:0 0 3px; }
+  .modal-head p{ margin:0; font-size:12px; color:var(--ink-45); }
+  .modal-body{ padding:16px 20px; display:flex; flex-direction:column; gap:13px; }
+  .field label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-45); margin-bottom:5px; }
+  .field input, .field select, .field textarea{
+    width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:5px;
+    font-family:'Inter',sans-serif; font-size:13px; background:var(--canvas); color:var(--ink);
+  }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .coord-hint{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent); background:rgba(47,122,99,0.08); padding:7px 10px; border-radius:5px; }
+  .modal-actions{ display:flex; gap:8px; padding:14px 20px 18px; border-top:1px solid var(--line); }
+  .modal-actions .tbtn{ color:var(--ink); border-color:var(--line); flex:1; text-align:center; }
+  .modal-actions .tbtn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .modal-actions .tbtn:hover{ background:var(--canvas); }
+  .modal-actions .tbtn.primary:hover{ background:#37916f; }
+
+  .place-hint-banner{
+    position:absolute; top:18px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+    padding:9px 16px; border-radius:20px; z-index:1500; display:none; align-items:center; gap:10px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+  }
+  .place-hint-banner.show{ display:flex; }
+  .place-hint-banner button{ background:rgba(255,255,255,0.15); border:none; color:#fff; border-radius:12px; padding:3px 10px; font-family:'IBM Plex Mono',monospace; font-size:10px; cursor:pointer; }
+
+  .drop-overlay{
+    position:absolute; inset:0; background:rgba(18,43,61,0.9); z-index:2000; display:none;
+    align-items:center; justify-content:center; color:#eef4f2; font-family:'Space Grotesk',sans-serif;
+    font-size:20px; border:3px dashed var(--accent); text-align:center;
+  }
+  .drop-overlay.show{ display:flex; }
+
+  .toast{
+    position:absolute; top:18px; left:50%; transform:translateX(-50%) translateY(-12px);
+    background:var(--ink); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:11.5px;
+    padding:9px 16px; border-radius:5px; z-index:3000; opacity:0; transition:all .25s ease;
+    pointer-events:none; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.err{ background:var(--st-verified); }
+  .toast.ok{ background:var(--st-regularized); }
+
+  @media (max-width:900px){
+    .body{ grid-template-columns:1fr; grid-template-rows:42vh 58vh; }
+    .sidebar{ border-right:none; border-bottom:1px solid var(--line); }
+    .kpi-strip{ display:none; }
+    .drawer{ width:calc(100% - 36px); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">SK</div>
+      <div class="brand-text">
+        <h1>Seke District Urban Expansion Monitor</h1>
+        <p>Ward-level compliance &amp; encroachment tracking</p>
+      </div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-num" id="kpiTotal">0</div><div class="kpi-label">Sites logged</div></div>
+      <div class="kpi"><div class="kpi-num alert" id="kpiActive">0</div><div class="kpi-label">Active cases</div></div>
+      <div class="kpi"><div class="kpi-num" id="kpiWards">0</div><div class="kpi-label">Wards affected</div></div>
+      <div class="kpi"><div class="kpi-num good" id="kpiResolved">0</div><div class="kpi-label">Resolved</div></div>
+    </div>
+
+    <div class="top-actions">
+      <button class="tbtn" id="loadBtn">Import GeoJSON</button>
+      <button class="tbtn" id="exportBtn">Export GeoJSON</button>
+      <button class="tbtn primary" id="logBtn">+ Log New Site</button>
+      <input type="file" id="fileInput" accept=".json,.geojson,application/geo+json,application/json">
+    </div>
+  </div>
+
+  <div class="body">
+    <aside class="sidebar">
+      <div class="search-row">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Search site ID, ward, notes…">
+        </div>
+      </div>
+
+      <div class="filter-block">
+        <div class="filter-label">Status</div>
+        <div class="chips" id="statusChips"></div>
+      </div>
+
+      <div class="ward-bars" id="wardBars"></div>
+
+      <div class="count-row" id="countRow">No data loaded yet</div>
+      <div class="list" id="list">
+        <div class="empty-state"><b>No sites loaded</b>Import a GeoJSON file of monitoring points, or load the illustrative sample set for Seke District below.</div>
+        <div style="padding:0 18px 18px;"><button class="tbtn primary" style="width:100%;color:#fff;" id="sampleBtn">Load sample dataset</button></div>
+      </div>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="drop-overlay" id="dropOverlay">Drop the GeoJSON file anywhere on the map</div>
+      <div class="toast" id="toast"></div>
+
+      <div class="place-hint-banner" id="placeHint">
+        <span>Click anywhere on the map to place the new site</span>
+        <button id="cancelPlace">Cancel</button>
+      </div>
+
+      <div class="map-legend">
+        <div class="map-legend-title">Case status</div>
+        <div id="legendRows"></div>
+      </div>
+
+      <div class="drawer" id="drawer">
+        <div class="drawer-head">
+          <button class="drawer-close" id="drawerClose">✕</button>
+          <div class="drawer-status" id="drawerStatus"></div>
+          <div class="drawer-title" id="drawerTitle">—</div>
+          <div class="drawer-sub" id="drawerSub"></div>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Log new monitoring site</h2>
+      <p>Record a suspected unauthorized structure or expansion for follow-up.</p>
+    </div>
+    <div class="modal-body">
+      <div class="coord-hint" id="coordHint">Click "Pick location on map" to set GPS coordinates</div>
+      <button class="tbtn" id="pickLocationBtn" style="color:var(--ink);border-color:var(--line);">Pick location on map</button>
+
+      <div class="field">
+        <label>Ward</label>
+        <select id="fWard"></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Structure type</label>
+          <select id="fType">
+            <option>Residential</option>
+            <option>Commercial</option>
+            <option>Boundary wall</option>
+            <option>Farm structure</option>
+            <option>Road / servitude encroachment</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="fStatus"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Reporting source</label>
+          <select id="fSource">
+            <option>Council inspector</option>
+            <option>Community report</option>
+            <option>Satellite / aerial review</option>
+            <option>Ward councillor</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date reported</label>
+          <input type="date" id="fDate">
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="fNotes" placeholder="Description of the structure, access notes, ownership claims, etc."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="tbtn" id="cancelModal">Cancel</button>
+      <button class="tbtn primary" id="saveModal">Save site</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var STATUS_COLORS = {
+    "Reported": "#d99a2b",
+    "Under Investigation": "#d9702e",
+    "Verified Illegal": "#c0392b",
+    "Notice Issued": "#7a4fae",
+    "Demolished": "#6b7680",
+    "Regularized": "#2f8f5c"
+  };
+  var STATUS_ORDER = ["Reported","Under Investigation","Verified Illegal","Notice Issued","Demolished","Regularized"];
+  var RESOLVED_STATUSES = ["Demolished","Regularized"];
+  var WARDS = ["Ward 1","Ward 2","Ward 3","Ward 4","Ward 5","Ward 6","Ward 7","Ward 8"];
+
+  // Seke District centroid ~ -18.233, 30.950 (Mashonaland East, Zimbabwe)
+  var CENTER = [-18.233, 30.950];
+
+  function pt(dLat,dLon){ return [CENTER[1]+dLon, CENTER[0]+dLat]; } // [lon,lat]
+
+  var SAMPLE = {
+    "type":"FeatureCollection",
+    "features":[
+      mkf("SK-001","Ward 1","Residential","Verified Illegal","Council inspector","2026-02-11","Unauthorized brick residence built beyond approved stand boundary, no council permit on file.", pt(0.041,-0.052)),
+      mkf("SK-002","Ward 1","Boundary wall","Notice Issued","Ward councillor","2026-03-02","Perimeter wall extends 6m into road reserve; notice served to owner 2026-03-20.", pt(0.052,-0.038)),
+      mkf("SK-003","Ward 2","Commercial","Under Investigation","Community report","2026-01-19","Tuckshop and storage structure erected on undesignated open space near shopping centre.", pt(0.021,-0.011)),
+      mkf("SK-004","Ward 2","Residential","Reported","Community report","2026-04-05","Reported new foundation works started overnight, no visible signage or permit.", pt(0.033,0.004)),
+      mkf("SK-005","Ward 2","Farm structure","Regularized","Council inspector","2025-11-02","Cattle pen retroactively approved after site inspection and boundary survey.", pt(0.009,-0.019)),
+      mkf("SK-006","Ward 3","Residential","Verified Illegal","Satellite / aerial review","2026-02-27","Cluster of 4 structures identified via aerial comparison, none matching approved layout plan.", pt(-0.014,0.028)),
+      mkf("SK-007","Ward 3","Residential","Verified Illegal","Satellite / aerial review","2026-02-27","Second structure in same cluster; shares access road with SK-006.", pt(-0.017,0.031)),
+      mkf("SK-008","Ward 3","Road / servitude encroachment","Notice Issued","Council inspector","2026-03-14","Fence line built across designated road widening servitude.", pt(-0.006,0.019)),
+      mkf("SK-009","Ward 4","Commercial","Demolished","Council inspector","2025-09-08","Illegal butchery structure removed following enforcement action, site now vacant.", pt(-0.031,-0.006)),
+      mkf("SK-010","Ward 4","Residential","Under Investigation","Community report","2026-05-01","Neighbour dispute referred; structure footprint overlaps adjoining stand.", pt(-0.024,-0.017)),
+      mkf("SK-011","Ward 4","Boundary wall","Reported","Ward councillor","2026-05-22","Wall construction reported in progress, inspection pending.", pt(-0.038,-0.009)),
+      mkf("SK-012","Ward 5","Residential","Verified Illegal","Satellite / aerial review","2026-01-30","Informal settlement expansion of approximately 9 structures along stream bank.", pt(0.061,0.036)),
+      mkf("SK-013","Ward 5","Residential","Verified Illegal","Satellite / aerial review","2026-01-30","Structure adjacent to SK-012, within wetland buffer zone.", pt(0.058,0.041)),
+      mkf("SK-014","Ward 5","Residential","Notice Issued","Council inspector","2026-02-19","Notice to vacate served; wetland buffer violation confirmed by EMA referral.", pt(0.064,0.033)),
+      mkf("SK-015","Ward 6","Commercial","Reported","Community report","2026-06-02","Reported unlicensed grinding mill operating from converted structure.", pt(-0.009,-0.041)),
+      mkf("SK-016","Ward 6","Farm structure","Regularized","Council inspector","2025-12-14","Grain storage structure approved after retrofit to meet setback requirements.", pt(-0.019,-0.052)),
+      mkf("SK-017","Ward 6","Residential","Under Investigation","Ward councillor","2026-04-18","Ownership dispute delaying compliance assessment.", pt(-0.002,-0.033)),
+      mkf("SK-018","Ward 7","Residential","Verified Illegal","Council inspector","2026-03-09","Structure built on land earmarked for a planned primary school extension.", pt(0.019,0.058)),
+      mkf("SK-019","Ward 7","Boundary wall","Reported","Community report","2026-06-11","Reported wall encroaching onto neighbouring communal grazing land.", pt(0.026,0.049)),
+      mkf("SK-020","Ward 8","Residential","Demolished","Council inspector","2025-10-21","Structure removed after repeated non-compliance with regularization notice.", pt(-0.046,0.014)),
+      mkf("SK-021","Ward 8","Commercial","Notice Issued","Council inspector","2026-02-04","Bottle store extension built without amended permit; 30-day notice issued.", pt(-0.052,0.023)),
+      mkf("SK-022","Ward 8","Residential","Under Investigation","Satellite / aerial review","2026-05-14","New rooftop detected in aerial pass, ground-truthing scheduled.", pt(-0.041,0.031)),
+      mkf("SK-023","Ward 1","Commercial","Reported","Community report","2026-06-20","Reported vending stalls fixed permanently to undesignated pavement area.", pt(0.047,-0.061)),
+      mkf("SK-024","Ward 3","Farm structure","Reported","Ward councillor","2026-06-24","Reported new poultry run adjacent to residential stands, odour complaints logged.", pt(-0.021,0.011))
+    ]
+  };
+
+  function mkf(id,ward,type,status,source,date,notes,lonlat){
+    return {
+      "type":"Feature",
+      "properties":{
+        "site_id": id,
+        "ward": ward,
+        "structure_type": type,
+        "status": status,
+        "reporting_source": source,
+        "date_reported": date,
+        "notes": notes
+      },
+      "geometry":{ "type":"Point", "coordinates": lonlat }
+    };
+  }
+
+  // ---------------- State ----------------
+  var map, markersLayer;
+  var allFeatures = [];
+  var activeStatuses = {};   // status -> bool (all true by default once loaded)
+  var activeWard = null;
+  var activeId = null;
+  var placingMode = false;
+  var pendingLatLng = null;
+  var nextSeq = 1;
+
+  function initMap(){
+    map = L.map('map', { zoomControl:true }).setView([CENTER[0],CENTER[1]], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      maxZoom:19
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+
+    map.on('click', function(e){
+      if(!placingMode) return;
+      pendingLatLng = e.latlng;
+      document.getElementById('coordHint').textContent = 'Location set: ' + e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+      stopPlacing();
+      openModal();
+    });
+  }
+
+  function pinIcon(color, isNew){
+    var svg = '<svg width="26" height="34" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M13 0C5.8 0 0 5.8 0 13c0 9.5 13 21 13 21s13-11.5 13-21C26 5.8 20.2 0 13 0z" fill="' + color + '" stroke="#16232a" stroke-width="1"/>' +
+      '<circle cx="13" cy="13" r="5" fill="#ffffff"/>' +
+      (isNew ? '<circle cx="20" cy="6" r="4" fill="#2f7a63" stroke="#fff" stroke-width="1"/>' : '') +
+      '</svg>';
+    return L.divIcon({ html:svg, className:'pin-icon', iconSize:[26,34], iconAnchor:[13,34], popupAnchor:[0,-30] });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
+  }
+
+  // ---------------- Rendering ----------------
+  function rebuildMarkers(){
+    markersLayer.clearLayers();
+    filteredEntries().forEach(function(e){
+      var color = STATUS_COLORS[e.status] || '#888';
+      var marker = L.marker([e.lat, e.lon], { icon: pinIcon(color, e.isNew) });
+      marker.bindPopup('<div class="popup-title">' + escapeHtml(e.id) + ' — ' + escapeHtml(e.ward) + '</div>' +
+        '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;color:' + color + ';text-transform:uppercase;margin-top:2px;">' + escapeHtml(e.status) + '</div>');
+      marker.on('click', function(){ selectEntry(e.id); });
+      e.marker = marker;
+      markersLayer.addLayer(marker);
+    });
+  }
+
+  function buildStatusChips(){
+    var row = document.getElementById('statusChips');
+    row.innerHTML = '';
+    STATUS_ORDER.forEach(function(status){
+      var chip = document.createElement('button');
+      chip.className = 'chip' + (activeStatuses[status] ? ' active' : '');
+      chip.innerHTML = '<span class="dot" style="background:' + STATUS_COLORS[status] + '"></span>' + status;
+      chip.addEventListener('click', function(){
+        activeStatuses[status] = !activeStatuses[status];
+        chip.classList.toggle('active', activeStatuses[status]);
+        refreshAll();
+      });
+      row.appendChild(chip);
+    });
+  }
+
+  function buildLegend(){
+    var rows = document.getElementById('legendRows');
+    rows.innerHTML = '';
+    STATUS_ORDER.forEach(function(s){
+      var r = document.createElement('div');
+      r.className = 'legend-row';
+      r.innerHTML = '<span class="dot" style="background:' + STATUS_COLORS[s] + '"></span><span>' + s + '</span>';
+      rows.appendChild(r);
+    });
+  }
+
+  function buildWardBars(){
+    var container = document.getElementById('wardBars');
+    container.innerHTML = '';
+    var wardMap = {};
+    allFeatures.forEach(function(e){
+      wardMap[e.ward] = wardMap[e.ward] || {};
+      wardMap[e.ward][e.status] = (wardMap[e.ward][e.status]||0) + 1;
+    });
+    var wardNames = Object.keys(wardMap).sort(function(a,b){
+      var ta = 0, tb = 0;
+      Object.keys(wardMap[a]).forEach(function(k){ta+=wardMap[a][k];});
+      Object.keys(wardMap[b]).forEach(function(k){tb+=wardMap[b][k];});
+      return tb - ta;
+    });
+    if(wardNames.length === 0) return;
+
+    var label = document.createElement('div');
+    label.className = 'filter-label';
+    label.textContent = 'Ward breakdown (click to filter)';
+    container.appendChild(label);
+
+    wardNames.forEach(function(ward){
+      var counts = wardMap[ward];
+      var total = 0; Object.keys(counts).forEach(function(k){ total += counts[k]; });
+      var row = document.createElement('div');
+      row.className = 'ward-bar-row' + (activeWard === ward ? ' filtered' : '');
+      var track = document.createElement('div');
+      track.className = 'ward-bar-track';
+      STATUS_ORDER.forEach(function(s){
+        if(!counts[s]) return;
+        var seg = document.createElement('div');
+        seg.className = 'ward-bar-seg';
+        seg.style.width = (counts[s]/total*100) + '%';
+        seg.style.background = STATUS_COLORS[s];
+        track.appendChild(seg);
+      });
+      row.innerHTML = '<div class="ward-bar-top"><span class="ward-bar-name">' + escapeHtml(ward) + '</span><span class="ward-bar-count">' + total + '</span></div>';
+      row.appendChild(track);
+      row.addEventListener('click', function(){
+        activeWard = (activeWard === ward) ? null : ward;
+        buildWardBars();
+        refreshAll();
+      });
+      container.appendChild(row);
+    });
+  }
+
+  function filteredEntries(){
+    var q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    return allFeatures.filter(function(e){
+      if(activeWard && e.ward !== activeWard) return false;
+      if(!activeStatuses[e.status]) return false;
+      if(!q) return true;
+      var hay = (e.id + ' ' + e.ward + ' ' + e.status + ' ' + e.structureType + ' ' + e.notes + ' ' + e.source).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }
+
+  function updateCount(){
+    var row = document.getElementById('countRow');
+    if(allFeatures.length === 0){ row.textContent = 'No data loaded yet'; return; }
+    row.innerHTML = 'Showing <b>' + filteredEntries().length + '</b> of <b>' + allFeatures.length + '</b> sites';
+  }
+
+  function updateKPIs(){
+    var total = allFeatures.length;
+    var active = allFeatures.filter(function(e){ return RESOLVED_STATUSES.indexOf(e.status) === -1; }).length;
+    var resolved = total - active;
+    var wardsSet = {};
+    allFeatures.forEach(function(e){ if(RESOLVED_STATUSES.indexOf(e.status)===-1) wardsSet[e.ward]=true; });
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiActive').textContent = active;
+    document.getElementById('kpiWards').textContent = Object.keys(wardsSet).length;
+    document.getElementById('kpiResolved').textContent = resolved;
+  }
+
+  function renderList(){
+    var list = document.getElementById('list');
+    var entries = filteredEntries();
+    updateCount();
+
+    if(allFeatures.length === 0){
+      list.innerHTML = '<div class="empty-state"><b>No sites loaded</b>Import a GeoJSON file of monitoring points, or load the illustrative sample set for Seke District below.</div>' +
+        '<div style="padding:0 18px 18px;"><button class="tbtn primary" style="width:100%;color:#fff;" id="sampleBtn">Load sample dataset</button></div>';
+      document.getElementById('sampleBtn').addEventListener('click', function(){ loadGeoJSON(SAMPLE,'Sample dataset'); });
+      return;
+    }
+    if(entries.length === 0){
+      list.innerHTML = '<div class="empty-state"><b>No matches</b>Adjust your search, ward, or status filters.</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    entries.sort(function(a,b){
+      var pa = RESOLVED_STATUSES.indexOf(a.status)===-1 ? 0 : 1;
+      var pb = RESOLVED_STATUSES.indexOf(b.status)===-1 ? 0 : 1;
+      if(pa!==pb) return pa-pb;
+      return b.date.localeCompare(a.date);
+    });
+    entries.forEach(function(e){
+      var item = document.createElement('div');
+      item.className = 'item' + (e.id === activeId ? ' active' : '');
+      item.setAttribute('data-id', e.id);
+      var color = STATUS_COLORS[e.status] || '#888';
+      item.innerHTML =
+        '<div class="item-top"><div class="item-name">' + escapeHtml(e.ward) + ' &middot; ' + escapeHtml(e.structureType) + '</div>' +
+        '<div class="site-id">' + escapeHtml(e.id) + '</div></div>' +
+        '<div class="item-meta">' + escapeHtml(e.date) + ' &middot; ' + e.lat.toFixed(4) + ', ' + e.lon.toFixed(4) + '</div>' +
+        '<span class="status-pill" style="background:' + color + '"><span class="dot"></span>' + escapeHtml(e.status) + '</span>';
+      item.addEventListener('click', function(){ selectEntry(e.id); });
+      list.appendChild(item);
+    });
+  }
+
+  function selectEntry(id){
+    activeId = id;
+    var entry = allFeatures.filter(function(e){ return e.id === id; })[0];
+    if(!entry) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.item'), function(el){
+      el.classList.toggle('active', el.getAttribute('data-id') === id);
+    });
+    var activeEl = document.querySelector('.item.active');
+    if(activeEl) activeEl.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    map.flyTo([entry.lat, entry.lon], Math.max(map.getZoom(), 14), { duration:0.6 });
+    if(entry.marker) entry.marker.openPopup();
+    openDrawer(entry);
+  }
+
+  function openDrawer(entry){
+    var color = STATUS_COLORS[entry.status] || '#888';
+    document.getElementById('drawerStatus').style.background = color;
+    document.getElementById('drawerStatus').innerHTML = '<span class="dot"></span>' + entry.status;
+    document.getElementById('drawerTitle').textContent = entry.ward + ' — ' + entry.structureType;
+    document.getElementById('drawerSub').textContent = entry.id + '  ·  ' + entry.lat.toFixed(5) + ', ' + entry.lon.toFixed(5);
+
+    var body = document.getElementById('drawerBody');
+    body.innerHTML = '';
+    var rows = [
+      ['Date reported', entry.date],
+      ['Reporting source', entry.source],
+      ['Structure type', entry.structureType],
+      ['Notes', entry.notes]
+    ];
+    rows.forEach(function(r){
+      var row = document.createElement('div');
+      row.className = 'prop-row';
+      row.innerHTML = '<span class="prop-key">' + escapeHtml(r[0]) + '</span><span class="prop-val">' + escapeHtml(r[1]||'—') + '</span>';
+      body.appendChild(row);
+    });
+    document.getElementById('drawer').classList.add('open');
+  }
+  function closeDrawer(){
+    document.getElementById('drawer').classList.remove('open');
+    activeId = null;
+    Array.prototype.forEach.call(document.querySelectorAll('.item'), function(el){ el.classList.remove('active'); });
+  }
+
+  function refreshAll(){
+    rebuildMarkers();
+    renderList();
+    updateCount();
+    updateKPIs();
+  }
+
+  // ---------------- Load / normalize data ----------------
+  function guess(props, candidates, fallback){
+    for(var i=0;i<candidates.length;i++){
+      if(props && props[candidates[i]] != null && props[candidates[i]] !== '') return String(props[candidates[i]]);
+    }
+    return fallback;
+  }
+
+  function loadGeoJSON(geojson, sourceLabel){
+    var feats = [];
+    if(geojson && geojson.type === 'FeatureCollection') feats = geojson.features || [];
+    else if(geojson && geojson.type === 'Feature') feats = [geojson];
+    else { showToast('That file has no usable GeoJSON features.', true); return; }
+
+    allFeatures = [];
+    activeWard = null;
+    activeId = null;
+    var idx = 0;
+    var bounds = [];
+    var seenWards = {};
+
+    feats.forEach(function(f){
+      if(!f.geometry) return;
+      var coords;
+      if(f.geometry.type === 'Point') coords = f.geometry.coordinates;
+      else if(f.geometry.type === 'MultiPoint') coords = f.geometry.coordinates[0];
+      else return;
+      if(!coords || coords.length < 2) return;
+
+      var props = f.properties || {};
+      var lon = coords[0], lat = coords[1];
+      var status = guess(props, ['status','Status','case_status'], 'Reported');
+      if(STATUS_ORDER.indexOf(status) === -1) status = 'Reported';
+      var entry = {
+        id: guess(props, ['site_id','id','ID'], 'SITE-' + (idx+1)),
+        ward: guess(props, ['ward','Ward','WARD'], 'Unassigned'),
+        structureType: guess(props, ['structure_type','type','Type'], 'Unspecified'),
+        status: status,
+        source: guess(props, ['reporting_source','source'], 'Unknown'),
+        date: guess(props, ['date_reported','date'], ''),
+        notes: guess(props, ['notes','description','note'], ''),
+        lat: lat, lon: lon,
+        raw: props
+      };
+      seenWards[entry.ward] = true;
+      allFeatures.push(entry);
+      bounds.push([lat, lon]);
+      idx++;
+    });
+
+    STATUS_ORDER.forEach(function(s){ activeStatuses[s] = true; });
+
+    if(allFeatures.length === 0){
+      showToast('No point features found in that file.', true);
+      refreshAll();
+      return;
+    }
+
+    nextSeq = allFeatures.length + 1;
+    populateWardSelect(Object.keys(seenWards).length ? Object.keys(seenWards) : WARDS);
+    buildStatusChips();
+    buildLegend();
+    buildWardBars();
+    refreshAll();
+
+    if(bounds.length === 1) map.setView(bounds[0], 14);
+    else map.fitBounds(bounds, { padding:[40,40] });
+
+    showToast((sourceLabel||'File') + ' loaded — ' + allFeatures.length + ' site' + (allFeatures.length===1?'':'s') + '.', false);
+  }
+
+  // ---------------- Log new site flow ----------------
+  function populateWardSelect(wardList){
+    var sel = document.getElementById('fWard');
+    sel.innerHTML = '';
+    wardList.forEach(function(w){
+      var o = document.createElement('option'); o.value = w; o.textContent = w; sel.appendChild(o);
+    });
+  }
+  function populateStatusSelect(){
+    var sel = document.getElementById('fStatus');
+    sel.innerHTML = '';
+    STATUS_ORDER.forEach(function(s){ var o = document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+  }
+
+  function startPlacing(){
+    placingMode = true;
+    pendingLatLng = null;
+    document.getElementById('placeHint').classList.add('show');
+    document.getElementById('modalOverlay').classList.remove('show');
+    document.getElementById('map').style.cursor = 'crosshair';
+  }
+  function stopPlacing(){
+    placingMode = false;
+    document.getElementById('placeHint').classList.remove('show');
+    document.getElementById('map').style.cursor = '';
+  }
+
+  function openModal(){
+    document.getElementById('fNotes').value = '';
+    document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+    if(!pendingLatLng){ document.getElementById('coordHint').textContent = 'Click "Pick location on map" to set GPS coordinates'; }
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+  function closeModal(){
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  function saveNewSite(){
+    if(!pendingLatLng){ showToast('Set a location on the map before saving.', true); return; }
+    var id = 'SK-NEW-' + String(nextSeq++).padStart(3,'0');
+    var entry = {
+      id: id,
+      ward: document.getElementById('fWard').value,
+      structureType: document.getElementById('fType').value,
+      status: document.getElementById('fStatus').value,
+      source: document.getElementById('fSource').value,
+      date: document.getElementById('fDate').value || new Date().toISOString().slice(0,10),
+      notes: document.getElementById('fNotes').value,
+      lat: pendingLatLng.lat, lon: pendingLatLng.lng,
+      isNew: true,
+      raw:{}
+    };
+    allFeatures.push(entry);
+    activeStatuses[entry.status] = true;
+    buildStatusChips();
+    buildWardBars();
+    refreshAll();
+    closeModal();
+    pendingLatLng = null;
+    showToast('Site ' + id + ' logged in ' + entry.ward + '.', false);
+    selectEntry(id);
+  }
+
+  function exportData(){
+    if(allFeatures.length === 0){ showToast('Nothing to export yet.', true); return; }
+    var fc = {
+      "type":"FeatureCollection",
+      "features": allFeatures.map(function(e){
+        return {
+          "type":"Feature",
+          "properties":{
+            "site_id": e.id, "ward": e.ward, "structure_type": e.structureType,
+            "status": e.status, "reporting_source": e.source, "date_reported": e.date, "notes": e.notes
+          },
+          "geometry":{ "type":"Point", "coordinates":[e.lon, e.lat] }
+        };
+      })
+    };
+    var blob = new Blob([JSON.stringify(fc, null, 2)], { type:'application/geo+json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'seke-urban-expansion-monitor.geojson';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Exported ' + allFeatures.length + ' sites as GeoJSON.', false);
+  }
+
+  var toastTimer;
+  function showToast(msg, isErr){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : ' ok');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 3400);
+  }
+
+  function readFile(file){
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{ loadGeoJSON(JSON.parse(e.target.result), file.name); }
+      catch(err){ showToast('Could not parse that file as JSON.', true); }
+    };
+    reader.onerror = function(){ showToast('Could not read that file.', true); };
+    reader.readAsText(file);
+  }
+
+  // ---------------- Wire up ----------------
+  function init(){
+    initMap();
+    populateStatusSelect();
+    populateWardSelect(WARDS);
+    STATUS_ORDER.forEach(function(s){ activeStatuses[s] = true; });
+    buildLegend();
+
+    document.getElementById('loadBtn').addEventListener('click', function(){ document.getElementById('fileInput').click(); });
+    document.getElementById('fileInput').addEventListener('change', function(e){ readFile(e.target.files[0]); });
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('logBtn').addEventListener('click', function(){ pendingLatLng=null; openModal(); });
+    document.getElementById('searchInput').addEventListener('input', refreshAll);
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+
+    document.getElementById('pickLocationBtn').addEventListener('click', startPlacing);
+    document.getElementById('cancelPlace').addEventListener('click', stopPlacing);
+    document.getElementById('cancelModal').addEventListener('click', closeModal);
+    document.getElementById('saveModal').addEventListener('click', saveNewSite);
+    document.getElementById('modalOverlay').addEventListener('click', function(e){ if(e.target === this) closeModal(); });
+
+    var mapWrap = document.querySelector('.map-wrap');
+    var overlay = document.getElementById('dropOverlay');
+    ['dragenter','dragover'].forEach(function(evt){ mapWrap.addEventListener(evt, function(e){ e.preventDefault(); overlay.classList.add('show'); }); });
+    ['dragleave','drop'].forEach(function(evt){ mapWrap.addEventListener(evt, function(e){ e.preventDefault(); overlay.classList.remove('show'); }); });
+    mapWrap.addEventListener('drop', function(e){
+      var file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if(file) readFile(file);
+    });
+
+    renderList();
+    updateKPIs();
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
